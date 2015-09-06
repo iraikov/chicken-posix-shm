@@ -48,7 +48,7 @@ created).
 
 ## Examples
 
-
+```scheme
   (let* ((str "Hello, world!")
          (path (sprintf "/shmtest~A" (random 100)))
          (fd (shm-open path (list open/rdwr open/creat))))
@@ -59,7 +59,7 @@ created).
       (file-read fd (string-length str))
       (file-close fd)
       (shm-unlink path)))
-
+```
 
 ## License
 
