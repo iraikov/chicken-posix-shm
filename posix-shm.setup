@@ -1,0 +1,45 @@
+;; -*- Hen -*-
+
+(define (dynld-name fn)		
+  (make-pathname #f fn ##sys#load-dynamic-extension))	
+
+
+(define (shm-try-compile ldflags cflags)
+  (and (try-compile 
+	(string-append "#include <sys/mman.h>\n"
+		       "#include <sys/stat.h>\n"
+		       "#include<fcntl.h>\n"
+		       "\n" 
+		       "int main(int argc, char **argv) { shm_open(\"test\",0,0); return 0; }\n")
+	ldflags: ldflags
+	cflags: cflags)
+       (cons ldflags cflags)))
+
+
+(define-syntax shm-test 
+  (syntax-rules ()
+    ((_ (flags ...))
+     (condition-case (shm-try-compile flags ...)
+		     (t ()    #f)))))
+
+
+(define c+ld-options (or (shm-test ("-lrt" "-DHAVE_POSIX_SHM")) ""))
+
+
+(compile -O2 -d0 -I. -S -s posix-shm.scm -j posix-shm 
+	 -L "\"" ,(car c+ld-options) "\"" 
+	 -C "\"" ,(cdr c+ld-options) "\"" )
+(compile -O2 -d0 -s posix-shm.import.scm)
+
+(install-extension
+
+  ; Name of your extension:
+  'posix-shm
+
+  ; Files to install for your extension:
+  `(,(dynld-name "posix-shm") ,(dynld-name "posix-shm.import") )
+    
+  ; Assoc list with properties for your extension:
+  `((version 1.2)
+    ))
+

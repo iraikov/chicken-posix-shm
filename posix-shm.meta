@@ -1,0 +1,23 @@
+;; -*- Hen -*-
+
+((egg "posix-shm.egg") ; This should never change
+
+ ; List here all the files that should be bundled as part of your egg.  
+
+ (files "posix-shm.meta" "posix-shm.setup" "posix-shm.scm" "tests")
+
+ ; Your egg's license:
+
+ (license "BSD")
+
+ ; Pick one from the list of categories (see below) for your egg and
+ ; enter it here.
+
+ (category os)
+
+ (test-depends test)
+
+ (author "Ivan Raikov")
+
+ (synopsis "POSIX Shared Memory API"))
+
