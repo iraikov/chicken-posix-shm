@@ -2,7 +2,7 @@
 ;;
 ;; Chicken Scheme interface to the POSIX Shared Memory API.
 ;;
-;; Copyright 2011-2015 Ivan Raikov.
+;; Copyright 2011-2020 Ivan Raikov.
 ;;
 ;; Based in part on code from the Ocamlnet library.
 ;;
@@ -41,11 +41,11 @@
 
  (posix-shm? shm-open shm-unlink)
 
-  (import scheme chicken foreign )
-  (require-library posix srfi-1)
-  (import (only srfi-1 filter)
-	  (only posix perm/irwxu perm/irgrp perm/iroth
-		open/rdonly open/rdwr open/creat open/excl open/trunc)
+ (import scheme (chicken base) (chicken foreign) (chicken blob)
+         (only (chicken string) ->string)
+         (only srfi-1 filter)
+         (only (chicken file posix) perm/irwxu perm/irgrp perm/iroth
+               open/rdonly open/rdwr open/creat open/excl open/trunc)
 	  )
 
 ; Include into generated code, but don't parse:
@@ -53,7 +53,6 @@
 
 #include <errno.h>
 #include <stdio.h>
-
 static void chicken_panic (C_char *) C_noret;
 static void chicken_panic (C_char *msg)
 {
@@ -63,28 +62,29 @@ static void chicken_panic (C_char *msg)
   exit (5); /* should never get here */
 }
 
-static void chicken_throw_exception(C_word value) C_noret;
-static void chicken_throw_exception(C_word value)
+static void chicken_throw_exception(C_word value, C_word loc) C_noret;
+static void chicken_throw_exception(C_word value, C_word loc)
 {
-  char *aborthook = C_text("\003sysabort");
+  char *aborthook = C_text("\003syserror-hook");
 
   C_word *a = C_alloc(C_SIZEOF_STRING(strlen(aborthook)));
   C_word abort = C_intern2(&a, aborthook);
 
   abort = C_block_item(abort, 0);
   if (C_immediatep(abort))
-    chicken_panic(C_text("`##sys#abort' is not defined"));
+    chicken_panic(C_text("`##sys#error-hook' is not defined"));
 
 #if defined(C_BINARY_VERSION) && (C_BINARY_VERSION >= 8)
-  C_word rval[3] = { abort, C_SCHEME_UNDEFINED, value };
-  C_do_apply(3, rval);
+  C_word rval[4] = { abort, C_SCHEME_UNDEFINED, value, loc };
+  C_do_apply(4, rval);
 #else
   C_save(value);
   C_do_apply(1, abort, C_SCHEME_UNDEFINED);
 #endif
 }
 
-void chicken_error (char *msg, C_word obj) 
+
+void chicken_error (char *msg, C_word obj, C_word loc) 
 {
   size_t msglen;
   C_word *a;
@@ -95,9 +95,8 @@ void chicken_error (char *msg, C_word obj)
   a = C_alloc (C_SIZEOF_STRING (msglen) + C_SIZEOF_LIST(2));
   scmmsg = C_string2 (&a, (char *) msg);
   list = C_list(&a, 2, scmmsg, obj);
-  chicken_throw_exception(list);
+  chicken_throw_exception(list, loc);
 }
-
 
 /* Adapted from the Ocaml function convert_flag_list: */
 
@@ -158,7 +157,11 @@ C_word chicken_shm_open(char *path, int flags, int perm)
       C_word *p; size_t pathlen;
       pathlen = strlen(path);
       p = C_alloc (C_SIZEOF_STRING (pathlen));
-      chicken_error ("Unable to shm_open", C_string(&p, pathlen, path));
+      C_word *l; size_t loclen;
+      char *loc = "shm_open";
+      loclen = strlen(loc);
+      l = C_alloc (C_SIZEOF_STRING (loclen));
+      chicken_error ("Unable to shm_open", C_string(&p, pathlen, path), C_string(&l, loclen, loc));
     } else
       {
          result = C_fix(ret);
@@ -183,7 +186,11 @@ C_word chicken_shm_unlink(char *path)
          C_word *p; size_t pathlen;
          pathlen = strlen(path);
          p = C_alloc (C_SIZEOF_STRING (pathlen));
-         chicken_error ("Unable to shm_unlink", C_string(&p, pathlen, path));
+         C_word *l; size_t loclen;
+         char *loc = "shm_unlink";
+         loclen = strlen(loc);
+         l = C_alloc (C_SIZEOF_STRING (loclen));
+         chicken_error ("Unable to shm_open", C_string(&p, pathlen, path), C_string(&l, loclen, loc));
     } else
       {
          result = C_fix(ret);
@@ -202,7 +209,7 @@ C_word chicken_shm_unlink(char *path)
 
 (define chicken_shm_open (foreign-safe-lambda scheme-object "chicken_shm_open" nonnull-c-string int int))
 
-(define-constant valid-flags (list open/rdonly open/rdwr open/creat open/excl open/trunc))
+(define valid-flags (list open/rdonly open/rdwr open/creat open/excl open/trunc))
 
 (define (shm-open path oflags #!key (mode (+ perm/irwxu perm/irgrp perm/iroth)))
   (let ((oflags1 (apply + (filter (lambda (x) (member x valid-flags)) oflags))))

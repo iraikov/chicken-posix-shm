@@ -20,7 +20,7 @@ Argument `PATH` specifies the shared memory object to be created or
 opened. For portable use, name should have an initial slash (/) and
 contain no embedded slashes.
 
-`OFLAGS` is a list of bit masks from the `posix` unit which will
+`OFLAGS` is a list of bit masks from the `chicken file posix` unit which will
 be ORed together and passed to `shm_open`. It must contains exactly
 one of `open/rdonly` or `open/rdwr` and any of the other flags
 listed here:
@@ -64,7 +64,7 @@ created).
 ## License
 
 >
-> Copyright 2011-2015 Ivan Raikov
+> Copyright 2011-2020 Ivan Raikov
 >  
 >  Redistribution and use in source and binary forms, with or without
 >  modification, are permitted provided that the following conditions are

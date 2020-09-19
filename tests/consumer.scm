@@ -1,4 +1,4 @@
-(use posix-shm)
+(import scheme (chicken base) (chicken format) (chicken file posix) (chicken string) posix-shm)
 
 (define block-size 8)
 
@@ -10,7 +10,7 @@
       (let ((block.bytes (file-read fd block-size)))
         (let ((block (car block.bytes))
               (bytes (cadr block.bytes)))
-          (cond ((zero? bytes) (print (string-concatenate (reverse data))))
+          (cond ((zero? bytes) (print (apply conc (reverse data))))
                 (else (recur (cons (car block.bytes) data))))
           )
         ))

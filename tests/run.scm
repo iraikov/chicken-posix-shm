@@ -1,9 +1,9 @@
-(use posix-shm srfi-13)
+(import scheme (chicken format) (chicken random) (chicken file posix) (chicken string) posix-shm)
 
 (define block-size 8)
 
 (let* ((str "Hello, world!")
-       (path (sprintf "/shmtest~A" (random 100)))
+       (path (sprintf "/shmtest~A" (pseudo-random-integer 100)))
        (fd (shm-open path (list open/rdwr open/creat))))
   (file-truncate fd (string-length str))
   (file-write fd str)
@@ -14,7 +14,7 @@
       (let ((block.bytes (file-read fd block-size)))
         (let ((block (car block.bytes))
               (bytes (cadr block.bytes)))
-          (cond ((zero? bytes) (print (string-concatenate (reverse data))))
+          (cond ((zero? bytes) (print (apply conc (reverse data))))
                 (else (recur (cons (car block.bytes) data))))
           )
         ))
