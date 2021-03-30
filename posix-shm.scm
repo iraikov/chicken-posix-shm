@@ -41,12 +41,23 @@
 
  (posix-shm? shm-open shm-unlink)
 
- (import scheme (chicken base) (chicken foreign) (chicken blob)
-         (only (chicken string) ->string)
-         (only srfi-1 filter)
-         (only (chicken file posix) perm/irwxu perm/irgrp perm/iroth
-               open/rdonly open/rdwr open/creat open/excl open/trunc)
-	  )
+(import scheme)
+(cond-expand
+  (chicken-4
+     (import chicken foreign)
+     (require-library posix srfi-1)
+     (import (only srfi-1 filter)
+             (only posix perm/irwxu perm/irgrp perm/iroth
+                   open/rdonly open/rdwr open/creat open/excl open/trunc)))
+  (chicken-5
+   (import scheme (chicken base) (chicken foreign) (chicken blob)
+           (only (chicken string) ->string)
+           (only srfi-1 filter)
+           (only (chicken file posix) perm/irwxu perm/irgrp perm/iroth
+                 open/rdonly open/rdwr open/creat open/excl open/trunc)))
+  (else
+   (error "Unsupported CHICKEN version.")))
+
 
 ; Include into generated code, but don't parse:
 #>
