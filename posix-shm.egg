@@ -5,7 +5,7 @@
  (category os)
  (dependencies srfi-1)
  (test-dependencies test)
- (build-dependencies compile-file)
+ (build-dependencies srfi-13 compile-file)
  (author "Ivan Raikov")
  (components (extension posix-shm (custom-build "build.sh")))
  )
