@@ -1,4 +1,12 @@
-(import scheme (chicken format) (chicken random) (chicken file posix) (chicken string) posix-shm)
+(import scheme)
+(cond-expand
+  (chicken-4
+   (use posix-shm)
+   (define pseudo-random-integer random))
+  (chicken-5
+   (import scheme (chicken format) (chicken random) (chicken file posix) (chicken string) posix-shm))
+  (else
+   (error "Unsupported CHICKEN version.")))
 
 (define block-size 8)
 
