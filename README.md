@@ -2,7 +2,7 @@ POSIX Shared Memory API.
 
 ## Documentation
 
-The `posix-shm` allows the creation and access of POSIX shared
+The `posix-shm` library allows the creation and access of POSIX shared
 memory objects. A POSIX shared memory object is in effect a file
 handle which can be used by several processes to access the same
 region of shared memory.
@@ -13,7 +13,7 @@ region of shared memory.
 
 <procedure>shm-open:: PATH * OFLAGS  [* MODE] -> FD</procedure>
 
-`shm-open` is a wrapper around `shm_open`, which analogous to the
+`shm-open` is a wrapper around `shm_open`, which is analogous to the
 UNIX system call `open(2)`.
 
 Argument `PATH` specifies the shared memory object to be created or
