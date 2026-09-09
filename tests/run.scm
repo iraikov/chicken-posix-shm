@@ -1,33 +1,46 @@
 (import scheme)
-(cond-expand
-  (chicken-4
-   (use posix-shm)
-   (define pseudo-random-integer random))
-  (chicken-5
-   (import scheme (chicken format) (chicken random) (chicken file posix) (chicken string) posix-shm))
-  (else
-   (error "Unsupported CHICKEN version.")))
+
+(import scheme (chicken format) (chicken random) (chicken bytevector)
+        (chicken string) (chicken file posix) test posix-shm)
 
 (define block-size 8)
 
-(let* ((str "Hello, world!")
-       (path (sprintf "/shmtest~A" (pseudo-random-integer 100)))
-       (fd (shm-open path (list open/rdwr open/creat))))
-  (file-truncate fd (string-length str))
-  (file-write fd str)
-  (file-close fd)
-  (let ((fd (shm-open path (list open/rdonly open/excl ))))
-    (let recur ((data '()))
-      ;; read blocks of size block-size until # bytes read is zero
-      (let ((block.bytes (file-read fd block-size)))
-        (let ((block (car block.bytes))
-              (bytes (cadr block.bytes)))
-          (cond ((zero? bytes) (print (apply conc (reverse data))))
-                (else (recur (cons (car block.bytes) data))))
-          )
-        ))
-    (file-close fd)
-    (shm-unlink path))
-  )
+;; Writes str into a freshly created POSIX shared memory segment, reads
+;; it back in blocks of block-size bytes, and returns the round-tripped
+;; string.
+(define (shm-round-trip str)
+  (let ((path (sprintf "/shmtest~A" (pseudo-random-integer 100000))))
+    (let ((fd (shm-open path (list open/rdwr open/creat))))
+      (file-truncate fd (string-length str))
+      (file-write fd (string->utf8 str))
+      (file-close fd))
+    (let ((fd (shm-open path (list open/rdonly))))
+      (let recur ((chunks '()))
+        (let* ((block.bytes (file-read fd block-size))
+               (block (car block.bytes))
+               (bytes (cadr block.bytes)))
+          (if (zero? bytes)
+              (begin
+                (file-close fd)
+                (shm-unlink path)
+                (apply string-append (reverse chunks)))
+              (recur (cons (utf8->string block 0 bytes) chunks))))))))
 
+(test-group "posix-shm round-trip"
 
+  (test-assert "posix-shm support detected" posix-shm?)
+
+  (test "short string" "Hello, world!" (shm-round-trip "Hello, world!"))
+
+  (test "empty string" "" (shm-round-trip ""))
+
+  (test "string shorter than block size" "hi" (shm-round-trip "hi"))
+
+  (test "string exact multiple of block size" "12345678"
+    (shm-round-trip "12345678"))
+
+  (test "string longer than several blocks"
+    "The quick brown fox jumps over the lazy dog."
+    (shm-round-trip "The quick brown fox jumps over the lazy dog.")))
+
+(test-exit)
