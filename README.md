@@ -49,14 +49,17 @@ created).
 ## Examples
 
 ```scheme
+  (import (chicken format) (chicken random) (chicken bytevector) (chicken file posix) posix-shm)
+
   (let* ((str "Hello, world!")
-         (path (sprintf "/shmtest~A" (random 100)))
+         (path (sprintf "/shmtest~A" (pseudo-random-integer 100)))
          (fd (shm-open path (list open/rdwr open/creat))))
     (file-truncate fd (string-length str))
-    (file-write fd str)
+    (file-write fd (string->utf8 str))
     (file-close fd)
-    (let ((fd (shm-open path (list open/rdonly open/excl ))))
-      (file-read fd (string-length str))
+    (let ((fd (shm-open path (list open/rdonly))))
+      (let ((block.bytes (file-read fd (string-length str))))
+        (print (utf8->string (car block.bytes) 0 (cadr block.bytes))))
       (file-close fd)
       (shm-unlink path)))
 ```
